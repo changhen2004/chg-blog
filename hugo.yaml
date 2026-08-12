@@ -1,0 +1,58 @@
+baseURL: "https://changhen2004.github.io/chg-blog/"
+languageCode: "zh-cn"
+title: "Chg 的技术笔记"
+theme: "PaperMod"
+enableRobotsTXT: true
+enableEmoji: true
+paginate: 10
+pygmentsUseClasses: true
+
+params:
+  env: production
+  description: "记录学习和工作中的技术笔记、踩坑经验与小项目"
+  keywords: [Blog, Hugo, GitHub Pages, 技术笔记]
+  author: changhen2004
+  DateFormat: "2006-01-02"
+  defaultTheme: auto
+  disableThemeToggle: false
+  ShowReadingTime: true
+  ShowShareButtons: true
+  ShowPostNavLinks: true
+  ShowBreadCrumbs: true
+  ShowCodeCopyButtons: true
+  ShowWordCount: true
+  ShowRssButtonInSectionTermList: true
+  UseHugoToc: true
+  disableSpecial1stPost: false
+  disableScrollToTop: false
+  comments: false
+  homeInfoParams:
+    Title: "你好，我是 Chg 👋"
+    Content: >
+      这里是我的个人技术博客，主要记录学习过程中的笔记、踩坑记录和一些小项目。
+
+      写博客最好的时间是十年前，其次是现在。
+  socialIcons:
+    - name: github
+      url: "https://github.com/changhen2004"
+  assets:
+    disableHLJS: true
+
+menu:
+  main:
+    - identifier: posts
+      name: 文章
+      url: /posts/
+      weight: 10
+    - identifier: archives
+      name: 归档
+      url: /archives/
+      weight: 20
+    - identifier: tags
+      name: 标签
+      url: /tags/
+      weight: 30
+    - identifier: search
+      name: 搜索
+      url: /search/
+      weight: 40
