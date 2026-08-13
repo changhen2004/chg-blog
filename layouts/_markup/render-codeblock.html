@@ -1,0 +1,7 @@
+{{- if eq .Type "mermaid" -}}
+<pre class="mermaid">{{ .Inner | safeHTML }}</pre>
+{{- else if .Type -}}
+{{ transform.Highlight .Inner .Type }}
+{{- else -}}
+<pre><code>{{ .Inner }}</code></pre>
+{{- end -}}
