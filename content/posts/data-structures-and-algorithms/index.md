@@ -103,7 +103,7 @@ flowchart TD
 | O(n)     | 10 万次    | 可接受                   |
 | O(log n) | 约 17 次   | 极快（log₂100000 ≈ 16.6） |
 
-![常见时间复杂度增长趋势对比](/images/complexity_curve.png)
+![常见时间复杂度增长趋势对比](images/complexity_curve.png)
 
 #### 3.3 最好、最坏与平均时间复杂度
 
@@ -430,7 +430,7 @@ int dequeue() {
 
 - **线性探测**：依次向后找 `(hash(key) + i) % size`，`i = 0, 1, 2, ...`。实现简单，但容易产生"聚集"现象（冲突扎堆）。
   
-  ![1.gif](/images/hash-linear-probe.gif)
+  ![1.gif](images/hash-linear-probe.gif)
 
 ```Python
 # 线性探测法示意
@@ -445,7 +445,7 @@ def insert(table, key, value):
 
 每个数组位置挂一条链表（或红黑树），冲突的 key 都链在同一位置。**Java 的 HashMap 与 Python 的 dict 冲突解决本质上都基于此思想**（JDK 8 起链表过长时会转成红黑树）。
 
-![2.gif](/images/hash-chaining.gif)
+![2.gif](images/hash-chaining.gif)
 
 ```Python
 # 链地址法示意
@@ -544,7 +544,7 @@ struct TreeNode {
 | 二叉搜索树（BST）      | 左子树所有节点 < 根 < 右子树所有节点       |
 | 平衡二叉树（AVL）      | 任意节点的左右子树高度差不超过 1，避免退化      |
 
- ![image](/images/special-binary-trees.png)
+ ![image](images/special-binary-trees.png)
 
 ### 4. 二叉树的四种遍历
 
