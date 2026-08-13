@@ -1,5 +1,5 @@
 {{- if .Params.mermaid -}}
-<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="/js/mermaid.min.js"></script>
 <script>
   const isDark = document.documentElement.classList.contains('dark');
   mermaid.initialize({ startOnLoad: true, theme: isDark ? 'dark' : 'default', securityLevel: 'loose' });
