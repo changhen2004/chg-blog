@@ -1,6 +1,6 @@
 ---
 title: "从零到一：把项目部署到腾讯云服务器的完整指南（以 GoCommunity 为例）"
-date: 2026-08-28
+date: 2026-08-27
 tags: ["Docker", "CI/CD", "GitHub Actions", "腾讯云", "部署", "DevOps", "Nginx"]
 showToc: true
 mermaid: true
