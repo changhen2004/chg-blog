@@ -28,9 +28,14 @@ showToc: true
 
 ### 2.1 从 Chatbot 到 Agent
 
-```text
-Chatbot:  User → LLM → Response
-Agent:    Goal → Think → Act → Observe → Think again → ... → Goal Achieved
+```mermaid
+flowchart LR
+    subgraph Chatbot
+        U1["User"] --> L1["LLM"] --> R1["Response"]
+    end
+    subgraph Agent
+        G["Goal"] --> Th["Think"] --> Ac["Act"] --> Ob["Observe"] --> Th2["Think again"] --> ...["..."] --> GA["Goal Achieved"]
+    end
 ```
 
 Chatbot 是单轮的输入-输出映射；Agent 是一个**闭环控制系统**。它有目标、有状态、有工具、有记忆，能在多步推理中不断缩小"当前状态"与"目标状态"的差距。
@@ -62,12 +67,14 @@ Agent 设计的本质，就是在这两者之间建立一层"确定性外壳"—
 
 ### 3.1 Agent 决策，系统执行
 
-```text
-LLM 的职责边界：
-  理解 → 规划 → 选择工具 → 分析结果
-
-Go Runtime 的职责边界：
-  权限 → 校验 → 超时 → 执行 → 审计 → 状态持久化
+```mermaid
+flowchart LR
+    subgraph LLM 职责边界
+        L1["理解"] --> L2["规划"] --> L3["选择工具"] --> L4["分析结果"]
+    end
+    subgraph Go Runtime 职责边界
+        G1["权限"] --> G2["校验"] --> G3["超时"] --> G4["执行"] --> G5["审计"] --> G6["状态持久化"]
+    end
 ```
 
 **永远不要让 LLM 直接获得数据库、Shell、Kubernetes 等底层权限。** LLM 说"重启 Worker"，它不应该有能力执行 `kubectl rollout restart`；它应该生成一个结构化的 Action 请求，由 Go Runtime 经过策略检查、审批流程后才真正执行。
@@ -76,19 +83,21 @@ Go Runtime 的职责边界：
 
 ### 3.2 读与写分离
 
-```text
-Read Tool（低风险，免审批）
-├── prometheus.query        # 查询指标
-├── prometheus.alerts       # 查看活跃告警
-├── prometheus.range_query  # 趋势分析
-├── rabbitmq.inspect        # 检查队列状态
-├── runbook.search          # 检索知识库
-└── incident.history        # 查询历史事件
-
-Action Tool（高风险，强制审批）
-├── worker.restart          # 重启服务
-├── deployment.scale         # 扩缩容
-└── deployment.rollback      # 回滚发布
+```mermaid
+flowchart TD
+    subgraph "Read Tool（低风险，免审批）"
+        R1["prometheus.query — 查询指标"]
+        R2["prometheus.alerts — 查看活跃告警"]
+        R3["prometheus.range_query — 趋势分析"]
+        R4["rabbitmq.inspect — 检查队列状态"]
+        R5["runbook.search — 检索知识库"]
+        R6["incident.history — 查询历史事件"]
+    end
+    subgraph "Action Tool（高风险，强制审批）"
+        A1["worker.restart — 重启服务"]
+        A2["deployment.scale — 扩缩容"]
+        A3["deployment.rollback — 回滚发布"]
+    end
 ```
 
 读操作是幂等的、无副作用的，Agent 可以自由调用以收集证据。写操作必须经过风险策略引擎评估，MEDIUM 及以上风险必须进入人工审批。
@@ -97,9 +106,11 @@ Action Tool（高风险，强制审批）
 
 ### 3.3 默认安全
 
-```text
-Action Tool 的默认行为：
-  RequireApproval = true
+```mermaid
+flowchart TD
+    A["Action Tool"] --> B{"RequireApproval?"}
+    B -->|默认| C["true — 需要审批"]
+    B -->|仅当显式声明 LOW 风险| D["false — 免审批"]
 ```
 
 只有 LOW 风险、明确白名单的操作可以免审批。新增一个 Action Tool 时，它默认就是需要审批的——开发者必须显式声明"这个操作风险为 LOW"才能跳过审批。
@@ -110,12 +121,12 @@ Action Tool 的默认行为：
 
 每个结论都必须绑定证据（Evidence）：
 
-```text
-Conclusion
-  ├── Metric Evidence     （Prometheus 指标）
-  ├── Log Evidence        （日志片段）
-  ├── Runbook Evidence    （知识库匹配）
-  └── Tool Result Evidence（工具调用结果）
+```mermaid
+flowchart TD
+    C["Conclusion"] --> E1["Metric Evidence（Prometheus 指标）"]
+    C --> E2["Log Evidence（日志片段）"]
+    C --> E3["Runbook Evidence（知识库匹配）"]
+    C --> E4["Tool Result Evidence（工具调用结果）"]
 ```
 
 Agent 不应该"猜测"根因，而应该"基于证据推导"根因。这不仅是工程要求，也是 Prompt 设计的核心约束——在 System Prompt 中明确告诉 LLM："如果证据不足，继续调查，不允许猜测。"
@@ -124,8 +135,9 @@ Agent 不应该"猜测"根因，而应该"基于证据推导"根因。这不仅�
 
 Agent 运行可能因为任何原因中断——LLM 超时、工具调用失败、等待人工审批。系统必须支持：
 
-```text
-Running → Interrupted → Checkpoint → Resume
+```mermaid
+flowchart LR
+    A["Running"] --> B["Interrupted"] --> C["Checkpoint"] --> D["Resume"]
 ```
 
 这不是可选的增强功能，而是生产系统的基本要求。在 GoOnCall 中，Agent Run 的每一步都持久化到 PostgreSQL，审批等待本质上就是一个 Checkpoint，审批通过后从 Checkpoint 恢复执行。
@@ -134,75 +146,33 @@ Running → Interrupted → Checkpoint → Resume
 
 ## 4. 架构全景
 
-```text
-                          ┌──────────────────┐
-                          │  Alertmanager /   │
-                          │  Webhook / API    │
-                          └────────┬─────────┘
-                                   │
-                              HTTP / SSE
-                                   │
-                          ┌────────▼─────────┐
-                          │     Gin API       │
-                          │  (控制面)         │
-                          └────────┬─────────┘
-                                   │
-                    ┌──────────────┼──────────────┐
-                    │              │              │
-             ┌──────▼──────┐ ┌────▼──────┐ ┌─────▼─────┐
-             │ Incident    │ │ Agent API │ │ Approval  │
-             │ Service     │ │           │ │ API       │
-             └──────┬──────┘ └────┬──────┘ └─────┬─────┘
-                    │              │              │
-                    └──────────────┼──────────────┘
-                                   │
-                            ┌──────▼──────┐
-                            │   Agent     │
-                            │  Runtime    │
-                            │  (数据面)   │
-                            └──────┬──────┘
-                                   │
-               ┌───────────────────┼───────────────────┐
-               │                   │                   │
-        ┌──────▼──────┐    ┌──────▼──────┐    ┌──────▼──────┐
-        │ Diagnosis   │    │ Supervisor  │    │ Action      │
-        │ Agent       │    │ (规划)      │    │ Agent       │
-        └──────┬──────┘    └──────┬──────┘    └──────┬──────┘
-               │                   │                   │
-               └───────────────────┼───────────────────┘
-                                   │
-                            Tool Runtime
-                                   │
-         ┌──────────┬──────────┬───┴────┬──────────┐
-         │          │          │        │          │
-   ┌─────▼────┐ ┌───▼────┐ ┌──▼───┐ ┌──▼─────┐ ┌──▼──────┐
-   │Prometheus│ │RabbitMQ│ │ RAG  │ │Deploy  │ │Incident │
-   │Tool      │ │Tool    │ │Retrie│ │Tool    │ │Tool     │
-   └──────────┘ └────────┘ └──────┘ └────────┘ └─────────┘
-                                   │
-                            ┌──────▼──────┐
-                            │ Policy /    │
-                            │ Audit       │
-                            └──────┬──────┘
-                                   │
-                            ┌──────▼──────┐
-                            │  RabbitMQ   │
-                            │  (事件总线) │
-                            └──────┬──────┘
-                                   │
-                            ┌──────▼──────┐
-                            │   Worker    │
-                            └──────┬──────┘
-                                   │
-                      ┌────────────┼────────────┐
-                      │            │            │
-                  PostgreSQL    Redis       Qdrant
-                      │            │            │
-                      └────────────┼────────────┘
-                                   │
-                            Observability
-                                   │
-                         Prometheus + Grafana
+```mermaid
+flowchart TD
+    A["Alertmanager / Webhook / API"] -->|HTTP / SSE| B["Gin API（控制面）"]
+    B --> C["Incident Service"]
+    B --> D["Agent API"]
+    B --> E["Approval API"]
+    C --> F["Agent Runtime（数据面）"]
+    D --> F
+    E --> F
+    F --> G["Diagnosis Agent"]
+    F --> H["Supervisor（规划）"]
+    F --> I["Action Agent"]
+    G --> TR["Tool Runtime"]
+    H --> TR
+    I --> TR
+    TR --> T1["Prometheus Tool"]
+    TR --> T2["RabbitMQ Tool"]
+    TR --> T3["RAG Retrieval"]
+    TR --> T4["Deploy Tool"]
+    TR --> T5["Incident Tool"]
+    T1 & T2 & T3 & T4 & T5 --> PA["Policy / Audit"]
+    PA --> MQ["RabbitMQ（事件总线）"]
+    MQ --> W["Worker"]
+    W --> DB[("PostgreSQL")]
+    W --> RD[("Redis")]
+    W --> QD[("Qdrant")]
+    DB & RD & QD --> OBS["Observability: Prometheus + Grafana"]
 ```
 
 ### 4.1 控制面与数据面分离
@@ -220,9 +190,10 @@ Running → Interrupted → Checkpoint → Resume
 
 ### 4.2 两个进程，一套装配
 
-```text
-cmd/api/main.go      → bootstrap.New().Run()
-cmd/worker/main.go   → bootstrap.New().RunWorker(ctx)
+```mermaid
+flowchart LR
+    A["cmd/api/main.go"] --> C["bootstrap.New().Run()"]
+    B["cmd/worker/main.go"] --> D["bootstrap.New().RunWorker(ctx)"]
 ```
 
 API 和 Worker 共享同一个 `bootstrap` 包做依赖注入，但启动不同的组件。这避免了代码重复，也保证了两者对领域模型的理解完全一致。
@@ -253,39 +224,18 @@ Agent 的推理模式有多种：Plan-then-Execute、Reflexion、LATS、ReAct。
 2. **可解释性**：每一步都有明确的 Thought → Action → Observation，便于审计
 3. **工具友好**：ReAct 天然围绕"选择工具 → 执行 → 观察结果"设计，与工具系统无缝衔接
 
-```text
-              ┌─────────────────────────────┐
-              │                             │
-              ▼                             │
-         Thought                            │
-        "消费者数量下降，我需要              │
-         检查 RabbitMQ 队列深度"            │
-              │                             │
-              ▼                             │
-         Action                             │
-        rabbitmq.inspect(queue="tasks")     │
-              │                             │
-              ▼                             │
-         Observation                        │
-        queue_depth=2418, consumers=2       │
-              │                             │
-              ▼                             │
-         Thought                            │
-        "队列积压严重，消费者几乎            │
-         全部断开。查看 Runbook..."          │
-              │                             │
-              ▼                             │
-         Action                             │
-        runbook.search("consumer down")     │
-              │                             │
-              ▼                             │
-         ...循环直到证据充分...              │
-              │                             │
-              ▼                             │
-         Final Answer                       │
-        根因 + 建议 + 证据链                │
-              │                             │
-              └─────────────────────────────┘
+```mermaid
+flowchart TD
+    T1["<b>Thought</b><br/>消费者数量下降，我需要<br/>检查 RabbitMQ 队列深度"]
+    A1["<b>Action</b><br/>rabbitmq.inspect(queue='tasks')"]
+    O1["<b>Observation</b><br/>queue_depth=2418, consumers=2"]
+    T2["<b>Thought</b><br/>队列积压严重，消费者几乎<br/>全部断开。查看 Runbook..."]
+    A2["<b>Action</b><br/>runbook.search('consumer down')"]
+    MORE["...循环直到证据充分..."]
+    FA["<b>Final Answer</b><br/>根因 + 建议 + 证据链"]
+
+    T1 --> A1 --> O1 --> T2 --> A2 --> MORE --> FA
+    FA -.->|证据不足时回环| T1
 ```
 
 ### 5.2 ReAct 在 Go 中的实现
@@ -359,13 +309,13 @@ type RegisteredTool struct {
 
 GoOnCall 使用装饰器模式为工具添加横切关注点：
 
-```text
-原始工具
-  ↓ recordingTool        ← 记录调用、计时、SSE 事件
-  ↓ policyCheck          ← 风险策略检查
-  ↓ timeout              ← 单次调用超时
-  ↓ audit                ← 审计日志
-  ↓ 最终执行
+```mermaid
+flowchart TD
+    A["原始工具"] --> B["recordingTool<br/>← 记录调用、计时、SSE 事件"]
+    B --> C["policyCheck<br/>← 风险策略检查"]
+    C --> D["timeout<br/>← 单次调用超时"]
+    D --> E["audit<br/>← 审计日志"]
+    E --> F["最终执行"]
 ```
 
 `recordingTool` 是一个典型例子——它包装原始工具，在调用前后记录 AgentStep 和 ToolCall，发布 SSE 事件，但完全不修改工具本身的逻辑。这是"关注点分离"在 Agent 工具系统中的体现。
@@ -374,20 +324,17 @@ GoOnCall 使用装饰器模式为工具添加横切关注点：
 
 Action Tool（如 `worker_restart`）有一个关键的设计：**LLM 调用时并不真正执行**。
 
-```text
-LLM 调用 worker_restart
-       ↓
-  策略检查（Risk = MEDIUM → 需要审批）
-       ↓
-  创建审批请求
-       ↓
-  返回 "pending_approval" 给 LLM
-       ↓
-  Agent 循环结束，Incident 进入 WAITING_APPROVAL
-       ↓
-  ... 人工审批 ...
-       ↓
-  审批通过 → 调用 Executor.Execute() → 真正执行
+```mermaid
+flowchart TD
+    A["LLM 调用 worker_restart"]
+    B["策略检查<br/>Risk = MEDIUM → 需要审批"]
+    C["创建审批请求"]
+    D["返回 'pending_approval' 给 LLM"]
+    E["Agent 循环结束<br/>Incident 进入 WAITING_APPROVAL"]
+    F["... 人工审批 ..."]
+    G["审批通过 → Executor.Execute()<br/>→ 真正执行"]
+
+    A --> B --> C --> D --> E --> F --> G
 ```
 
 这个设计确保了 LLM 永远无法直接触发危险操作。LLM 的"调用"实际上只是"请求"，真正的执行权在审批链之后。
@@ -402,28 +349,18 @@ Agent 系统中最危险的事情是**状态混乱**——Incident 还在调查�
 
 GoOnCall 的答案是：**LLM 永远不能直接修改 Incident 状态**。状态转换由一个严格的 Go 状态机控制：
 
-```text
-              ┌────────────┐
-              │    OPEN    │
-              └─────┬──────┘
-                    ↓
-             INVESTIGATING
-                    │
-                    ↓
-           WAITING_APPROVAL
-              │         │
-           approved   rejected
-              │         │
-              ↓         ↓
-          MITIGATING   FAILED
-              │
-              ↓
-          VERIFYING
-              │
-         ┌────┴────┐
-         │         │
-         ↓         ↓
-     RESOLVED    FAILED
+```mermaid
+stateDiagram-v2
+    [*] --> OPEN
+    OPEN --> INVESTIGATING
+    INVESTIGATING --> WAITING_APPROVAL
+    WAITING_APPROVAL --> MITIGATING : approved
+    WAITING_APPROVAL --> FAILED : rejected
+    MITIGATING --> VERIFYING
+    VERIFYING --> RESOLVED
+    VERIFYING --> FAILED
+    RESOLVED --> [*]
+    FAILED --> [*]
 ```
 
 状态机用一张显式的转换表实现，任何不在表中的转换都会被拒绝。例如，`INVESTIGATING → RESOLVED` 是明确禁止的——必须经过审批、执行、验证才能关闭。
@@ -440,16 +377,18 @@ WHERE id = $2 AND version = $3
 
 ### 7.3 状态机与 ReAct 的边界
 
-```text
-确定性流程 → 状态机控制
-  Incident 生命周期
-  审批流程
-  执行 → 验证 → 关闭
-
-非确定性流程 → ReAct 控制
-  故障诊断
-  工具选择
-  证据分析
+```mermaid
+flowchart TD
+    subgraph "确定性流程 → 状态机控制"
+        S1["Incident 生命周期"]
+        S2["审批流程"]
+        S3["执行 → 验证 → 关闭"]
+    end
+    subgraph "非确定性流程 → ReAct 控制"
+        R1["故障诊断"]
+        R2["工具选择"]
+        R3["证据分析"]
+    end
 ```
 
 **不要让 LLM 决定所有流程。** 确定性的业务逻辑（状态转换、审批流程、执行验证）用 Go 代码硬编码；只有真正需要"智能判断"的部分（故障诊断、根因分析）才交给 ReAct 循环。
@@ -462,16 +401,12 @@ WHERE id = $2 AND version = $3
 
 ### 8.1 为什么用消息队列
 
-```text
-API 收到告警
-     ↓
-  发布 agent.requested 事件
-     ↓
-  RabbitMQ
-     ↓
-  Worker 消费事件
-     ↓
-  运行 Agent
+```mermaid
+flowchart TD
+    A["API 收到告警"] --> B["发布 agent.requested 事件"]
+    B --> C["RabbitMQ"]
+    C --> D["Worker 消费事件"]
+    D --> E["运行 Agent"]
 ```
 
 如果把 Agent 执行放在 HTTP 请求中，一个诊断可能需要 3 分钟——HTTP 连接早就超时了。消息队列解决了这个问题：
@@ -483,16 +418,20 @@ API 收到告警
 
 ### 8.2 可靠投递
 
-```text
-Producer:
-  publisher-confirm + mandatory flag
-  → 投递失败立即报错（不是静默丢失）
-
-Consumer:
-  manual ack
-  → 处理成功后才确认
-  → 失败进入重试队列（TTL 5s，最多 3 次）
-  → 超过重试次数进入死信队列（DLQ）
+```mermaid
+flowchart TD
+    subgraph Producer
+        P1["publisher-confirm + mandatory flag"]
+        P2["投递失败立即报错（不是静默丢失）"]
+        P1 --> P2
+    end
+    subgraph Consumer
+        C1["manual ack"]
+        C2["处理成功后才确认"]
+        C3["失败进入重试队列（TTL 5s，最多 3 次）"]
+        C4["超过重试次数进入死信队列（DLQ）"]
+        C1 --> C2 --> C3 --> C4
+    end
 ```
 
 消息队列不是"发了就不管"。GoOnCall 确保每条消息都被可靠投递和处理：publisher confirm 保证消息到达 Exchange，mandatory flag 保证消息到达 Queue，manual ack 保证消息被成功处理。
@@ -525,44 +464,39 @@ RAG（Retrieval-Augmented Generation）通过检索本地知识库来弥补这�
 
 ### 9.2 混合检索架构
 
-```text
-Query: "RabbitMQ consumer 连接失败"
-              │
-     ┌────────┴────────┐
-     │                 │
-     ▼                 ▼
- 词法检索           向量检索
- (关键词匹配)     (语义相似度, candidate_k=20)
-     │                 │
-     └────────┬────────┘
-              │
-              ▼
-        RRF 融合
-   (Reciprocal Rank Fusion, k=60)
-              │
-              ▼
-         TopK 结果
-        (top_k=8)
+```mermaid
+flowchart TD
+    Q["Query: 'RabbitMQ consumer 连接失败'"]
+    Q --> L["词法检索<br/>（关键词匹配）"]
+    Q --> V["向量检索<br/>（语义相似度, candidate_k=20）"]
+    L --> RRF["RRF 融合<br/>（Reciprocal Rank Fusion, k=60）"]
+    V --> RRF
+    RRF --> TOP["TopK 结果<br/>（top_k=8）"]
 ```
 
 纯向量检索会漏掉精确关键词匹配（如特定的错误码）；纯词法检索无法理解语义相似性（"consumer 断开"和"消费者连接失败"）。混合检索结合两者的优势，用 RRF（Reciprocal Rank Fusion）融合排序。
 
 ### 9.3 增量索引
 
-```text
-启动时：
-  遍历 docs/ → 计算每个 chunk 的 SHA-256
-  → 与数据库中已索引的 chunk_hash 对比
-  → 只 embedding 新增/变更的 chunk
+```mermaid
+flowchart TD
+    A["启动时：遍历 docs/"] --> B["计算每个 chunk 的 SHA-256"]
+    B --> C{"与数据库中已索引的<br/>chunk_hash 对比"}
+    C -->|新增/变更| D["Embedding 并入库"]
+    C -->|未变化| E["跳过"]
 ```
 
 知识库不需要每次启动都全量重建。通过内容哈希实现增量索引，未变化的 chunk 直接跳过，节省 embedding API 调用成本和时间。
 
 ### 9.4 降级策略
 
-```text
-向量索引成功 → 混合检索（词法 + 向量 + RRF）
-向量索引失败 → 降级为纯词法检索
+```mermaid
+flowchart TD
+    A{"向量索引成功？"}
+    B["混合检索<br/>（词法 + 向量 + RRF）"]
+    C["降级为纯词法检索"]
+    A -->|是| B
+    A -->|否| C
 ```
 
 RAG 是增强功能，不是核心功能。即使向量库不可用，Agent 仍然可以通过词法检索获取知识——系统不会因为 RAG 失败而完全丧失诊断能力。
@@ -581,25 +515,20 @@ RAG 是增强功能，不是核心功能。即使向量库不可用，Agent 仍�
 
 人在环（Human-in-the-Loop）在关键决策点引入人类判断：
 
-```text
-Agent 诊断完成，建议重启 Worker
-       ↓
-  风险策略：MEDIUM → 需要审批
-       ↓
-  Incident 进入 WAITING_APPROVAL
-       ↓
-  SSE 推送 approval.required 事件
-       ↓
-  运维人员看到：
-    - 根因分析
-    - 证据链
-    - 建议操作
-    - 风险评估
-       ↓
-  人工判断：批准 or 拒绝
-       ↓
-  批准 → 执行 → 验证 → 关闭
-  拒绝 → 标记 FAILED
+```mermaid
+flowchart TD
+    A["Agent 诊断完成，建议重启 Worker"]
+    B["风险策略：MEDIUM → 需要审批"]
+    C["Incident 进入 WAITING_APPROVAL"]
+    D["SSE 推送 approval.required 事件"]
+    E["运维人员审查：<br/>根因分析 · 证据链 · 建议操作 · 风险评估"]
+    F{"人工判断"}
+    G["批准 → 执行 → 验证 → 关闭"]
+    H["拒绝 → 标记 FAILED"]
+
+    A --> B --> C --> D --> E --> F
+    F -->|批准| G
+    F -->|拒绝| H
 ```
 
 ### 10.2 审批不是阻塞
@@ -610,9 +539,10 @@ Agent 诊断完成，建议重启 Worker
 
 ### 10.3 完整审计链
 
-```text
-APPROVED → EXECUTING → EXECUTED
-                     → FAILED
+```mermaid
+flowchart LR
+    A["APPROVED"] --> B["EXECUTING"] --> C["EXECUTED"]
+    B --> D["FAILED"]
 ```
 
 每一步状态转换都有时间戳、操作人、关联的 Run ID 和 Tool Call ID。这不仅是技术需求，也是合规需求——在生产环境中，你需要知道"谁在什么时候批准了什么操作"。
@@ -678,12 +608,10 @@ Agent 的 System Prompt 不是"请帮我诊断问题"这么简单。它需要明
 
 ### 12.2 上下文注入
 
-```text
-System Prompt（静态）  +  Incident Context（动态）
-       ↓                        ↓
-       └────────┬───────────────┘
-                ↓
-           LLM Request
+```mermaid
+flowchart TD
+    SP["System Prompt（静态）"] --> LLM["LLM Request"]
+    IC["Incident Context（动态）"] --> LLM
 ```
 
 System Prompt 是静态的 Markdown 文件，启动时加载。Incident 的具体信息（服务名、告警名、严重程度、描述）作为 User Message 动态注入。这种分离让 Prompt 可以独立于代码修改和版本管理。
@@ -710,9 +638,20 @@ System Prompt 是静态的 Markdown 文件，启动时加载。Incident 的具�
 
 Agent 不是"调大模型"，而是一个完整的系统工程问题。
 
-```text
-Detect → Understand → Plan → Investigate → Approve → Execute → Verify → Learn
+```mermaid
+flowchart LR
+    A["Detect"] --> B["Understand"] --> C["Plan"] --> D["Investigate"] --> E["Approve"] --> F["Execute"] --> G["Verify"] --> H["Learn"]
+    style B fill:#4a9,stroke:#333,color:#fff
+    style C fill:#4a9,stroke:#333,color:#fff
+    style D fill:#4a9,stroke:#333,color:#fff
+    style A fill:#666,stroke:#333,color:#fff
+    style E fill:#666,stroke:#333,color:#fff
+    style F fill:#666,stroke:#333,color:#fff
+    style G fill:#666,stroke:#333,color:#fff
+    style H fill:#666,stroke:#333,color:#fff
 ```
+
+> 绿色 = LLM 驱动阶段；灰色 = 工程系统驱动阶段。
 
 这八个阶段中，LLM 只在 Understand、Plan、Investigate 三个阶段发挥作用。其余五个阶段——检测、审批、执行、验证、学习——都是确定性的 Go 代码在控制。
 
