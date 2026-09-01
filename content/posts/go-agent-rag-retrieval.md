@@ -11,7 +11,7 @@ mermaid: true
 >
 > 项目地址：[GoOnCall-Agent](https://github.com/changhen2004/GoOnCall-Agent)
 >
-> 前篇：[告警链路——从 Alertmanager 到 Agent 诊断]({{< relref "posts/go-agent-alert-chain.md" >}})
+> 前篇：[告警链路——从 Alertmanager 到 Agent 诊断]({{< relref "posts/go-agent-alert-chain" >}})
 
 ---
 

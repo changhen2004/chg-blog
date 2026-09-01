@@ -11,7 +11,7 @@ mermaid: true
 >
 > 项目地址：[GoOnCall-Agent](https://github.com/changhen2004/GoOnCall-Agent)
 >
-> 前篇：[Go Agent 设计总纲——从 ReAct 循环到 AIOps 闭环]({{< relref "posts/go-agent-design-master-plan.md" >}})
+> 前篇：[Go Agent 设计总纲——从 ReAct 循环到 AIOps 闭环]({{< relref "posts/go-agent-design-master-plan" >}})
 
 ---
 
