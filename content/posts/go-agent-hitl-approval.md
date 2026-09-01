@@ -11,7 +11,7 @@ mermaid: true
 >
 > 项目地址：[GoOnCall-Agent](https://github.com/changhen2004/GoOnCall-Agent)
 >
-> 前篇：[Go Agent 设计总纲——从 ReAct 循环到 AIOps 闭环]({{< relref "go-agent-design-master-plan" >}}) | [告警链路]({{< relref "go-agent-alert-chain" >}}) | [RAG 混合检索]({{< relref "go-agent-rag-retrieval" >}})
+> 前篇：[Go Agent 设计总纲——从 ReAct 循环到 AIOps 闭环]({{< relref "posts/go-agent-design-master-plan.md" >}}) | [告警链路]({{< relref "posts/go-agent-alert-chain.md" >}}) | [RAG 混合检索]({{< relref "posts/go-agent-rag-retrieval.md" >}})
 
 ---
 
@@ -536,7 +536,7 @@ Agent Run (诊断阶段)          审批等待期           执行阶段
 
 ## 9. 与总纲的对应
 
-回到[设计总纲]({{< relref "go-agent-design-master-plan" >}})中的 Agent 架构全景：
+回到[设计总纲]({{< relref "posts/go-agent-design-master-plan.md" >}})中的 Agent 架构全景：
 
 - **工具层**：Action Tool 的两阶段设计让标准 Tool 接口具备了 HITL 能力，LLM 无需感知审批流程
 - **处置层**：Remediation Executor 实现了总纲中"执行 → 验证 → 关闭"的闭环承诺
@@ -545,9 +545,9 @@ Agent Run (诊断阶段)          审批等待期           执行阶段
 
 与前三篇的关系：
 
-- [告警链路]({{< relref "go-agent-alert-chain" >}})：告警触发 Incident，Incident 驱动 Agent 诊断
+- [告警链路]({{< relref "posts/go-agent-alert-chain.md" >}})：告警触发 Incident，Incident 驱动 Agent 诊断
 - Agent 诊断中调用 Action Tool → 进入本文的审批链
-- [RAG 混合检索]({{< relref "go-agent-rag-retrieval" >}})：Agent 诊断时通过 RAG 获取知识库证据
+- [RAG 混合检索]({{< relref "posts/go-agent-rag-retrieval.md" >}})：Agent 诊断时通过 RAG 获取知识库证据
 - 审批通过后 → 本文的处置闭环完成整个生命周期
 
 ---
