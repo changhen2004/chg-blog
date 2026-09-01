@@ -4,6 +4,7 @@ date: 2026-09-01
 tags: ["Go", "Agent", "AIOps", "Eino", "ReAct", "RAG", "设计模式"]
 categories: ["Go Agent 设计系列"]
 showToc: true
+mermaid: true
 ---
 
 > 本文是「GoOnCall Agent 设计系列」的总纲篇。后续将逐一展开告警链路、RAG 混合检索、HITL 审批链、工具运行时、状态机等专题。
