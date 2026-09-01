@@ -1,6 +1,6 @@
 ---
 title: "Go Agent 设计系列——HITL 审批链：从风险策略到处置闭环"
-date: 2026-09-02
+date: 2026-09-01
 tags: ["Go", "Agent", "AIOps", "HITL", "审批", "状态机", "处置闭环"]
 categories: ["Go Agent 设计系列"]
 showToc: true

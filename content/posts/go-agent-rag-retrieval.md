@@ -1,6 +1,6 @@
 ---
 title: "Go Agent 设计系列——RAG 混合检索：Agent 的长期记忆"
-date: 2026-09-02
+date: 2026-09-01
 tags: ["Go", "Agent", "AIOps", "RAG", "向量检索", "Embedding", "RRF"]
 categories: ["Go Agent 设计系列"]
 showToc: true

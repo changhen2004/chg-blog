@@ -1,6 +1,6 @@
 ---
 title: "Go Agent 设计系列——告警链路：从 Alertmanager 到 Agent 诊断"
-date: 2026-09-02
+date: 2026-09-01
 tags: ["Go", "Agent", "AIOps", "告警", "状态机", "消息队列", "RabbitMQ"]
 categories: ["Go Agent 设计系列"]
 showToc: true
